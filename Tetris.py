@@ -9,6 +9,7 @@ import sys
 import time
 import random
 import pygame
+import math
 
 # define Helper class
 
@@ -200,8 +201,8 @@ def drawTetris(x, y, shape, angle):
 
     # drawing fallen tetris
     for i in range(len(b)):
-         nx, ny = b[i]
-         drawTetrisBlock(x + nx, y + ny, shapeColors[shape])
+        nx, ny = b[i]
+        drawTetrisBlock(x + nx, y + ny, shapeColors[shape])
 
     # drawing fallen tetris
     for by in range(y, TetrisHeight - h + 1):
@@ -303,7 +304,8 @@ def removeLine(y):
 
 # Add fallen tetris into board
 def addTetris(x, y, shape, angle):
-    global gScore, gLines
+    global gScore, gLines, gLevel, gTime
+    scores = [0, 40, 100, 300, 120]
 
     b = shapeBlock[shape][angle]
 
@@ -312,6 +314,7 @@ def addTetris(x, y, shape, angle):
         tetrisBoard[x + nx][y + ny] = shape
 
     # check if line is full
+    cLines = gLines
     for by in range(TetrisHeight - 1, 0, -1):
         full = True
         for bx in range(0, TetrisWidth):
@@ -323,7 +326,21 @@ def addTetris(x, y, shape, angle):
             #print("Full ", by)
             removeLine(by)
             gLines += 1
-            gScore += 10
+            #gScore += 10
+
+    # Calc score
+    cLines = gLines - cLines
+    gScore += scores[cLines]
+
+    # Calc level and drop timer
+    cLevel = int(gLines / 10) + 1
+    if gLevel < cLevel:
+        gLevel = cLevel
+        # level 1 = 500ms, level 50 and above = 50ms
+        gTime = gLevel if gLevel < 50 else 50
+        gTime = int(math.cos(math.pi / 100.0 * gTime) * 450) + 50
+        print("Level = {}, Timer = {}ms".format(gLevel, gTime))
+        pygame.time.set_timer(pygame.USEREVENT, gTime)
 
     return
 
@@ -334,6 +351,7 @@ gChar, gAngle = 0, 0
 gXpos, gYpos, gYmax = 3, 0, 0
 gScore, gLines, gLevel, gNext = 0, 0, 0, 0
 gGame = False
+gTime = 0
 
 def keyDown(event):
     global gChar, gAngle
@@ -391,12 +409,12 @@ def keyDown(event):
 def newGame():
     global gChar, gAngle, gNext
     global gScore, gLines, gLevel
-    global gGame
+    global gGame, gTime
 
     print("newGame called!")
 
     # Clean up Tetris values
-    gScore, gLines, gLevel = 0, 0, 0
+    gScore, gLines, gLevel = 0, 0, 1
     gAngle = 0
 
     if not gGame:
@@ -412,6 +430,11 @@ def newGame():
     dispScore()
     pygame.display.flip()
 
+    gTime = gLevel if gLevel < 50 else 50
+    gTime = int(math.cos(math.pi / 100.0 * gTime) * 450) + 50
+    print("Level = {}, Timer = {}ms".format(gLevel, gTime))
+    pygame.time.set_timer(pygame.USEREVENT, gTime)
+
     return
 
 #--------------------------------------------------------------------------
@@ -426,7 +449,7 @@ def main():
     newGame()
     dispStart()
 
-    pygame.time.set_timer(pygame.USEREVENT, 500)
+    #pygame.time.set_timer(pygame.USEREVENT, 500)
 
     # main game loop
     while True:
